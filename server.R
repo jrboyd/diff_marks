@@ -32,7 +32,7 @@ shinyServer(function(input, output, session) {
     colors = scale_colors(data = my_fe, scale = scale, list_in = list_a, bg_color = rgb(0,0,0,1), list_color = rgb(1,0,0,1))
     colors = scale_colors(data = my_fe, scale = scale, list_in = list_b, bg_color = rgb(0,0,0,1), list_color = rgb(0,1,0,1), colors = colors)
     sel = react_selected()
-    print(sel)
+    #print(sel)
     if(length(sel) > 0){
       colors = scale_colors(data = my_fe, scale = scale, list_in = react_selected(), bg_color = rgb(0,0,0,1), list_color = rgb(0,0,1,.7), colors = colors)
     }
@@ -54,14 +54,80 @@ shinyServer(function(input, output, session) {
       ))    
   })
   
-
+  react_FC = reactive({
+    fc_thresh = input$fc_threshold
+    out = list()
+    i_x = react_index_x()
+    i_y = react_index_y()
+    keep = my_fe[,i_y] > (my_fe[,i_x] + fc_thresh)
+    out$up = rownames(my_fe)[keep]
+    keep = my_fe[,i_x] > (my_fe[,i_y] + fc_thresh)
+    out$down = rownames(my_fe)[keep]
+    return(out)
+  })
+  
+  react_MAnorm = reactive({
+    fc_thresh = input$fc_threshold
+    out = list()
+    i_x = react_index_x()
+    i_y = react_index_y()
+    keep = my_fe[,i_y] > (my_fe[,i_x] + fc_thresh)
+    out$up = rownames(my_fe)[keep]
+    keep = my_fe[,i_x] > (my_fe[,i_y] + fc_thresh)
+    out$down = rownames(my_fe)[keep]
+    return(out)
+  })
+  
+  react_MACS2 = reactive({
+    fc_thresh = input$fc_threshold
+    out = list()
+    i_x = react_index_x()
+    i_y = react_index_y()
+    keep = my_fe[,i_y] > (my_fe[,i_x] + fc_thresh)
+    out$up = rownames(my_fe)[keep]
+    keep = my_fe[,i_x] > (my_fe[,i_y] + fc_thresh)
+    out$down = rownames(my_fe)[keep]
+    return(out)
+  })
+ 
+process_lists = function(direction, sel_lists){
+  new_list = character()
+  list_fun = list(
+    react_FC(),
+    react_MAnorm(),
+    react_MACS2())
+  names(list_fun) = c('Fold Change', 'MAnorm', 'MACS2 bdgdiff')#hardcoded from ui.R, room for improvement
+  if(is.null(sel_lists)){
+    print('no lists selected')
+    
+  }else{
+    for(i in 1:length(sel_lists)){
+      list_i = list_fun[[sel_lists[i]]][[direction]]
+      if(i == 1){
+        new_list = list_i
+      }else{
+        new_list = intersect(new_list, list_i )
+      }
+    }
+  }
+  return(new_list)
+}
+  
 react_list_a = reactive({
-  return(rownames(my_fe)[1:5])
+  direction = 'up'
+  sel_lists = input$available_lists
+  return(process_lists(direction, sel_lists))
 })
+
+
 
 react_list_b = reactive({
-  return(rownames(my_fe)[10:12])
+  direction = 'down'
+  sel_lists = input$available_lists
+  return(process_lists(direction, sel_lists))
 })
+
+
 
 react_index_x = reactive({
   return(1)
@@ -73,6 +139,8 @@ react_index_y = reactive({
 
 react_selected = reactive({
   new_selection = character()
+  list_a = react_list_a()
+  list_b = react_list_b()
   i_x = react_index_x()
   i_y = react_idnex_y()
   if(!is.null(v$brush)){
@@ -90,7 +158,7 @@ react_selected = reactive({
   if(length(new_selection) > 0){
     if(filter == 'List A'){
       new_selection = intersect(new_selection, list_a)
-      print(new_selection)
+      #print(new_selection)
     }else if(filter == 'List B'){
       new_selection = intersect(new_selection, list_b)
     }else if(filter == 'Exclude Lists'){
@@ -107,6 +175,8 @@ v <- reactiveValues(
   brush = NULL
   #selected = character()
 )
+
+
 
 # Handle clicks on the plot
 observeEvent(input$volcano_dblclick, {

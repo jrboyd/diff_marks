@@ -4,7 +4,11 @@ shinyUI(fluidPage(
   headerPanel('Differential ChIPSeq methods comparison'),
   fluidRow(
     column(width = 6, radioButtons(inputId = 'selection_filter', label = 'Point Selection Filtering', choices = c('No filter', 'List A', 'List B', 'Exclude Lists'), selected = 'No filter')),
-    column(width = 6, checkboxGroupInput(inputId = 'available_lists', label = 'Available List', choices = c('Fold Change', 'MAnorm', 'MACS2 bdgdiff'), selected = 'Fold Change'))
+    column(width = 6, checkboxGroupInput(inputId = 'available_methods', label = 'Differential Methods', choices = c('Fold Change', 'MAnorm', 'MACS2 bdgdiff'), selected = 'Fold Change'))
+  ),
+  fluidRow(
+    column(width = 6, uiOutput(outputId = 'x_select')),
+    column(width = 6, uiOutput(outputId = 'y_select'))
   ),
   fluidRow(
     column(width = 3,radioButtons(inputId = 'updown', label = 'Fold change direction', choices = c('up', 'down', 'either', 'no change'), selected = 'either'))

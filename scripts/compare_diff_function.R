@@ -150,25 +150,25 @@ ma_dp_fc_compare = function(a, b, filter_detected = F, file_prefix = NA, p_thres
   plot_n = plot_n + 1
   plot_2lists_wrap(ensgs_dp_a_gt_b, ensgs_dp_b_gt_a, dp_pval, plot_count = plot_n, plot_title = 'MACS2 bdgdiff')
   
-  plot_n = plot_n + 1
-  plot_2lists_wrap(ensgs_ma_a_gt_b, ensgs_ma_b_gt_a, ma_pval, plot_count = plot_n, plot_title = 'MAnorm')
-  
-  ensgs_both_a_gt_b = intersect(ensgs_ma_a_gt_b, ensgs_dp_a_gt_b)
-  ensgs_both_b_gt_a = intersect(ensgs_ma_b_gt_a, ensgs_dp_b_gt_a)
-  comb = c(ensgs_both_a_gt_b, ensgs_both_b_gt_a)
-  comb_pval = (ma_pval[comb] + dp_pval[comb]) / 2
-  plot_n = plot_n + 1
-  plot_2lists_wrap(ensgs_both_a_gt_b, ensgs_both_b_gt_a, comb_pval, plot_count = plot_n, plot_title = 'MACS2 bdgdiff\nMAnorm')
-  
-  
-  ensgs_fc_a_gt_b = passing_fc(a, b, my_fe)
-  ensgs_fc_b_gt_a = passing_fc(b, a, my_fe)
-  plot_n = plot_n + 1
-  plot_2lists_wrap(ensgs_fc_a_gt_b, ensgs_fc_b_gt_a, plot_count = plot_n, plot_title = '4 FC')
-  
-  ensgs_all_a_gt_b = intersect(ensgs_both_a_gt_b, ensgs_fc_a_gt_b)
-  ensgs_all_b_gt_a = intersect(ensgs_both_b_gt_a, ensgs_fc_b_gt_a)
-  plot_n = plot_n + 1
-  plot_2lists_wrap(ensgs_all_a_gt_b, ensgs_all_b_gt_a, comb_pval, plot_count = plot_n, plot_title = 'MACS2 bdgdiff\nMAnorm\n4 FC')
-  print('all done!')
+#   plot_n = plot_n + 1
+#   plot_2lists_wrap(ensgs_ma_a_gt_b, ensgs_ma_b_gt_a, ma_pval, plot_count = plot_n, plot_title = 'MAnorm')
+#   
+#   ensgs_both_a_gt_b = intersect(ensgs_ma_a_gt_b, ensgs_dp_a_gt_b)
+#   ensgs_both_b_gt_a = intersect(ensgs_ma_b_gt_a, ensgs_dp_b_gt_a)
+#   comb = c(ensgs_both_a_gt_b, ensgs_both_b_gt_a)
+#   comb_pval = (ma_pval[comb] + dp_pval[comb]) / 2
+#   plot_n = plot_n + 1
+#   plot_2lists_wrap(ensgs_both_a_gt_b, ensgs_both_b_gt_a, comb_pval, plot_count = plot_n, plot_title = 'MACS2 bdgdiff\nMAnorm')
+#   
+#   
+#   ensgs_fc_a_gt_b = passing_fc(a, b, my_fe)
+#   ensgs_fc_b_gt_a = passing_fc(b, a, my_fe)
+#   plot_n = plot_n + 1
+#   plot_2lists_wrap(ensgs_fc_a_gt_b, ensgs_fc_b_gt_a, plot_count = plot_n, plot_title = '4 FC')
+#   
+#   ensgs_all_a_gt_b = intersect(ensgs_both_a_gt_b, ensgs_fc_a_gt_b)
+#   ensgs_all_b_gt_a = intersect(ensgs_both_b_gt_a, ensgs_fc_b_gt_a)
+#   plot_n = plot_n + 1
+#   plot_2lists_wrap(ensgs_all_a_gt_b, ensgs_all_b_gt_a, comb_pval, plot_count = plot_n, plot_title = 'MACS2 bdgdiff\nMAnorm\n4 FC')
+#   print('all done!')
 }

@@ -86,7 +86,65 @@ get_ensgs = function(res, is1, dat_names){
   return(ensgs_a)
 }
 
-plot_2lists = function(data, list_a, list_b, a, b, scale, plot_title = 'TITLE'){
+
+
+#plot style functions
+ref_line = function(MIN, MAX)lines(c(MIN,MAX), c(MIN,MAX), col = rgb(0,0,1,1), lty = 3, lwd = 6)
+
+custom_plot = function(x, y, col, txt, ...){
+  plot(x = x, y = y, col = col, pch = 16,  ...)
+  MIN = par('usr')[1]
+  MAX = par('usr')[2]
+  box()
+  par(family="mono")
+  text(MIN + (MAX-MIN) * .02, MAX - (MAX-MIN) * .01, txt, adj = c(0,1)) 
+  ref_line(MIN, MAX)
+  par(family="")
+}
+
+scale_colors = function(data, scale, list_in, bg_color = 'black', list_color = 'red', colors = NA){#input colors if modifying existing colors list
+  if(is.na(colors[1])){
+    colors = rep(rgb(0,0,0,.1), nrow(data))
+    names(colors) = rownames(data)
+  }
+  if(is.na(scale[1])){
+    scale = rep(1, nrow(data))
+    names(scale) = rownames(data)
+  }
+  cr = colorRamp(colors = c(bg_color, list_color), alpha = T)
+  tmp = cr(scale[list_in])/255
+  colors[list_in] = rgb(tmp[,1], tmp[,2], tmp[,3], tmp[,4])
+  return(colors)
+}
+
+plot_list = function(data, list_in, colors, a, b, note = "", scale = NA, ...){
+  custom_plot(data[list_in,a],
+              data[list_in,b],
+              colors[list_in],
+              txt = note,
+              cex = .5,
+              ...)
+}
+
+plot_bg = function(data, lists_excluded, colors, a, b, note = "", scale = NA, ...){
+  non_ensgs = rownames(data)
+  for(l in lists_excluded){
+    non_ensgs = setdiff(non_ensgs, l)
+  }
+  plot_list(data, non_ensgs, colors, a, b, note = note, scale = scale, ...)
+}
+
+  plot_merge = function(data, list_a, list_b, colors, a, b, note, ...){
+  toSort = rep(0, length(colors))
+  names(toSort) = rownames(data)
+  toSort[list_a] = colors[list_a]
+  toSort[list_b] = colors[list_b]
+  o = order(toSort, decreasing = T)
+  #joined plot
+  custom_plot(data[o,a], data[o,b], colors[o], txt = note, cex = 1.5, ...)
+}
+
+plot_2lists = function(data, list_a, list_b, a, b, scale = NA, plot_title = 'TITLE'){
   #organize plot
   layout(matrix(c(rep(1,3),2:4, rep(5,3)), ncol = 3, byrow = T), heights = c(1,1,3))
   par(mai = rep(0,4), xpd = F)
@@ -98,27 +156,10 @@ plot_2lists = function(data, list_a, list_b, a, b, scale, plot_title = 'TITLE'){
   MAX = max(data)
   MIN = min(data)
   
-  #plot style functions
-  ref_line = function()lines(c(MIN,MAX), c(MIN,MAX), col = rgb(0,0,1,1), lty = 3, lwd = 6)
-  custom_plot = function(x, y, col, txt,  ...){
-    plot(x = x, y = y, col = col, pch = 16, xlim = c(MIN, MAX), ylim = c(MIN, MAX), axes = F, ...)
-    box()
-    text(MIN + (MAX-MIN) * .02, MAX - (MAX-MIN) * .01, txt, adj = c(0,1)) 
-    ref_line()
-  }
-  
-  colors = rep(rgb(0,0,0,.1), nrow(data))
-  names(colors) = rownames(data)
-  scaleByAlpha = F
-  if(scaleByAlpha){
-    colors[list_a] = rgb(1,0,0,scale[list_a])
-    colors[list_b] = rgb(0,1,0,scale[list_b])
-  }else{
-    colors[list_a] = rgb(scale[list_a],0,0,scale[list_a])
-    colors[list_b] = rgb(0,scale[list_b],0,scale[list_b])
-}
+  colors = scale_colors(data, scale, list_a)
+  colors = scale_colors(data, scale, list_b, list_color = 'green', colors = colors)
 
-
+  #ensures higher values in list are drawn on top
   o = order(scale[list_a])
   list_a = list_a[o]
 
@@ -128,37 +169,24 @@ plot_2lists = function(data, list_a, list_b, a, b, scale, plot_title = 'TITLE'){
   cell_lines = matrix(unlist(strsplit(colnames(data), split = ' ')),nrow = 2)[1,]
 
   #list_a plot
-  custom_plot(data[list_a,a],
-              data[list_a,b],
-              colors[list_a],
-              txt = paste0('up in ', cell_lines[a], ' : ', length(list_a)),
-              cex = .5)
+  note = paste0('up in ', cell_lines[a], ' : ', length(list_a))
+  plot_list(data, list_a, colors, a, b, note, scale, xlim = c(MIN, MAX), ylim = c(MIN, MAX), axes = F)
+  note = paste0('up in ', cell_lines[b], ' : ', length(list_b))
+  plot_list(data, list_b, colors, a, b, note, scale, xlim = c(MIN, MAX), ylim = c(MIN, MAX), axes = F)
   
-  #list_b plot
-  custom_plot(data[list_b,a],
-              data[list_b,b],
-              colors[list_b],
-              txt = paste0('up in ', cell_lines[b], ' : ', length(list_b)),
-              cex = .5)
+  note = paste0('background', ':', (nrow(data) - length(list_a) - length(list_b)))
+  plot_bg(data, list(list_a, list_b), colors, a, b, note, scale, xlim = c(MIN, MAX), ylim = c(MIN, MAX), axes = F)
   
-  #exclude list_a/b plot
-  non_ensgs = rownames(data)
-  non_ensgs = setdiff(non_ensgs, list_a)
-  non_ensgs = setdiff(non_ensgs, list_b)
-  
-  custom_plot(data[non_ensgs,a],
-              data[non_ensgs,b],
-              colors[non_ensgs],
-              txt = paste0('background', ':', length(non_ensgs)),
-              cex = .5)
-  
-  toSort = rep(0, length(colors))
-  names(toSort) = rownames(data)
-  toSort[list_a] = scale[list_a]
-  toSort[list_b] = scale[list_b]
-  o = order(toSort)
-  #joined plot
-  custom_plot(data[o,a], data[o,b], colors[o], txt = paste0('merge', ':', nrow(data)), cex = 1.5)
+  note = paste0('merge', ':', nrow(data))
+  plot_merge(data, list_a, list_b, colors, a, b, note, xlim = c(MIN, MAX), ylim = c(MIN, MAX), axes = F)
+#   
+#   toSort = rep(0, length(colors))
+#   names(toSort) = rownames(data)
+#   toSort[list_a] = scale[list_a]
+#   toSort[list_b] = scale[list_b]
+#   o = order(toSort, decreasing = T)
+#   #joined plot
+#   custom_plot(data[o,a], data[o,b], colors[o], txt = paste0('merge', ':', nrow(data)), MIN, MAX, cex = 1.5)
   
 }
 

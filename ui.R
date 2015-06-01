@@ -3,7 +3,7 @@ library('shiny')
 shinyUI(fluidPage(
   headerPanel('Differential ChIPSeq methods comparison'),
   fluidRow(
-    column(width = 6, radioButtons(inputId = 'type', label = 'Select Gene Type', choices = c('Protein Coding', 'lncoding', 'Both'), selected = 'Protein Coding'))
+    column(width = 6, radioButtons(inputId = 'selection_filter', label = 'Point Selection Filtering', choices = c('No filter', 'List A', 'List B', 'Exclude Lists'), selected = 'No filter'))
   ),
   fluidRow(
     column(width = 3,radioButtons(inputId = 'updown', label = 'Fold change direction', choices = c('up', 'down', 'either', 'no change'), selected = 'either'))
@@ -14,8 +14,9 @@ shinyUI(fluidPage(
     column(width = 4, sliderInput('maxes_threshold', label = 'log2 max threshold', min = 0, max = 16, value = 2))
   ),
   fluidRow(
-    column(plotOutput('venn'), width = 6),
-    column(plotOutput('volcano'), width = 6)
+    column(plotOutput('volcano', dblclick = "volcano_dblclick", click = 'volcano_click', brush = brushOpts(id = 'volcano_brush', delay = 600, delayType = 'debounce'), hover = 'volcano_hover'), width = 6),
+    column(plotOutput('venn'), width = 6)
+    
   ),
   uiOutput('select_gene_list')
 )

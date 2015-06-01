@@ -6,6 +6,9 @@ source('scripts//process_MAnorm.R')
 load('data/my_fe_corrected.save')
 debug = F
 
+selection_filter_choices = c('No filter', 'Up', 'Down', 'Unchanged')
+selection_method_choices = c('Fold Change', 'MAnorm', 'MACS2 bdgdiff')
+
 lines = c("MCF10A", "MCF7", "MDA231")
 lines = rep(lines, 2)
 mods = c(rep("H3K4AC",3), rep("H3K4ME3",3))

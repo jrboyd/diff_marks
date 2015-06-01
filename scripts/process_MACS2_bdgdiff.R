@@ -3,17 +3,10 @@ if(!exists('my_fe')) load('data//my_fe_corrected.save')
 source('scripts//diffpeaks_vs_manorm_vs_fe_functions.R')
 
 load_MACS2_bdgdiff = function(a, b, p_thresh = 0){
-  lines = c("MCF10A", "MCF7", "MDA231")
-  lines = rep(lines, 2)
-  mods = c("H3K4AC", "H3K4ME3")
   l1 = lines[a]
   l2 = lines[b]
-  m = mods[1]
-  if(a > 3 & b > 3){
-    m = mods[2]
-  }else if(!(a <= 3 & b <= 3)){
-    stop("histone marks don't match!")
-  }
+  if(mods[a] != mods[b])  stop("histone marks don't match!")
+  m = mods[a]
   #columns of res tables will be chr,start,end,up/down,log10pval,...
   save_name = paste0("data/diff_peak_results/", paste(l1, m, 'vs', l2, m, sep = "_"), ".save")
   if(file.exists(save_name)){

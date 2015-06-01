@@ -24,9 +24,9 @@ shinyServer(function(input, output, session) {
     
     #print(lines)
     try({
-      print(i_x)
+      #print(i_x)
       name_a = column_choices[i_x]
-      print(name_a)
+      #print(name_a)
       name_b = column_choices[i_y]
       scale = rep(1, nrow(my_fe)) #max(my_fe)
       names(scale) = rownames(my_fe)
@@ -68,28 +68,33 @@ shinyServer(function(input, output, session) {
     return(out)
   })
   
+  react_loadMAnorm = reactive({
+    out = load_MAnorm(react_index_x(), react_index_y())
+    return(out)
+  })
+  
   react_MAnorm = reactive({
-    res = load_MAnorm(react_index_x(), react_index_y())
-    fc_thresh = input$fc_threshold
-    out = list()
-    i_x = react_index_x()
-    i_y = react_index_y()
-    keep = my_fe[,i_y] > (my_fe[,i_x] + fc_thresh)
-    out$up = rownames(my_fe)[keep]
-    keep = my_fe[,i_x] > (my_fe[,i_y] + fc_thresh)
-    out$down = rownames(my_fe)[keep]
+    out = react_loadMAnorm()
+    pval_thresh = input$pval_threshold
+    keep = out$res[out$up,5] > pval_thresh
+    out$up = out$up[keep]
+    keep = out$res[out$down,5] > pval_thresh
+    out$down = out$down[keep]
+    return(out)
+  })
+  
+  react_loadMACS2 = reactive({
+    out = load_MACS2_bdgdiff(react_index_x(), react_index_y())
     return(out)
   })
   
   react_MACS2 = reactive({
-    fc_thresh = input$fc_threshold
-    out = list()
-    i_x = react_index_x()
-    i_y = react_index_y()
-    keep = my_fe[,i_y] > (my_fe[,i_x] + fc_thresh)
-    out$up = rownames(my_fe)[keep]
-    keep = my_fe[,i_x] > (my_fe[,i_y] + fc_thresh)
-    out$down = rownames(my_fe)[keep]
+    out = react_loadMACS2()
+    pval_thresh = input$pval_threshold
+    keep = out$res[out$up,5] > pval_thresh
+    out$up = out$up[keep]
+    keep = out$res[out$down,5] > pval_thresh
+    out$down = out$down[keep]
     return(out)
   })
   
@@ -99,7 +104,7 @@ shinyServer(function(input, output, session) {
       react_FC(),
       react_MAnorm(),
       react_MACS2())
-    names(list_fun) = c('Fold Change', 'MAnorm', 'MACS2 bdgdiff')#hardcoded from ui.R, room for improvement
+    names(list_fun) = selection_method_choices#hardcoded from ui.R, room for improvement
     if(is.null(sel_methods)){
       print('no lists selected')
       
@@ -134,20 +139,34 @@ shinyServer(function(input, output, session) {
   
   react_index_x = reactive({
     sel = name2index[input$x_values]
-    if(is.null(sel)){
-      sel = 1
-    } 
+    if(is.null(sel)) sel = 1
+    if(length(sel) < 1) sel = 1
     print(sel)
     return(sel)
   })
   
   react_index_y = reactive({
     sel = name2index[input$y_values]
-    if(is.null(sel)){
-      sel = 2
-    }
+    if(is.null(sel)) sel = 2
+    if(length(sel) < 1) sel = 2
     return(sel)
   })
+  
+  filter_selections = function(filter, sel, list_a, list_b){
+    filter = input$selection_filter
+    if(length(sel) > 0){
+      if(filter == selection_filter_choices[2]){#up
+        sel = intersect(sel, list_a)
+        #print(sel)
+      }else if(filter == selection_filter_choices[3]){#down
+        sel = intersect(sel, list_b)
+      }else if(filter == selection_filter_choices[4]){#unchanged
+        sel = setdiff(sel, list_a)
+        sel = setdiff(sel, list_b)
+      }
+    }
+    return(sel)
+  }
   
   react_selected = reactive({
     new_selection = character()
@@ -155,29 +174,24 @@ shinyServer(function(input, output, session) {
     list_b = react_list_b()
     i_x = react_index_x()
     i_y = react_index_y()
+    filter = input$selection_filter
+    
     if(!is.null(v$brush)){
       keep = (my_fe[,i_x] > v$brush$xmin & my_fe[,i_x] < v$brush$xmax) &
         (my_fe[,i_y] > v$brush$ymin & my_fe[,i_y] < v$brush$ymax)
       new_selection = rownames(my_fe)[keep]
-      
-    }
-    if(!is.null(v$click1)){
+      new_selection = filter_selections(filter, new_selection, list_a, list_b)
+    }else if(!is.null(v$click1)){
       data_dist = abs(my_fe[,i_x] - v$click1$x) + abs(my_fe[,i_y] - v$click1$y)
-      new_selection = names(sort(data_dist))[1]
+      closest = names(sort(data_dist))
+      closest = filter_selections(filter, closest, list_a, list_b)
+      new_selection = closest[1]
       
+    }else{
+      new_selection = filter_selections(filter, new_selection, list_a, list_b)
     }
-    filter = input$selection_filter
-    if(length(new_selection) > 0){
-      if(filter == 'List A'){
-        new_selection = intersect(new_selection, list_a)
-        #print(new_selection)
-      }else if(filter == 'List B'){
-        new_selection = intersect(new_selection, list_b)
-      }else if(filter == 'Exclude Lists'){
-        new_selection = setdiff(new_selection, list_a)
-        new_selection = setdiff(new_selection, list_b)
-      }
-    }
+    
+    
     return(new_selection)
   })
   
@@ -194,7 +208,6 @@ shinyServer(function(input, output, session) {
   observeEvent(input$volcano_dblclick, {
     if(debug) print('dblclick')
     v$click1 <- input$volcano_dblclick
-    
     v$brush = NULL
   })
   

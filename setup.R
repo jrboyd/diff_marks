@@ -1,4 +1,5 @@
 library('shiny')
+library('xtable')
 library('RColorBrewer')
 source('scripts/diffpeaks_vs_manorm_vs_fe.R')
 source('scripts//process_MACS2_bdgdiff.R')
@@ -10,7 +11,7 @@ debug = F
 display_filter_choices = c('Background', 'Up', 'Down')
 selection_filter_choices = c('No filter', 'Up', 'Down', 'Unchanged')
 selection_method_choices = c('Fold Change', 'MAnorm', 'MACS2 bdgdiff')
-
+detail_plot_types = c('None', 'ngsplots - profiles', 'ngsplots - heatmap', 'FE heatmap')
 
 lines = c("MCF10A", "MCF7", "MDA231")
 lines = rep(lines, 2)
@@ -20,7 +21,7 @@ name2index = 1:6
 names(name2index) = column_choices
 
 source('scripts//functions_ngsplot.R')
-ngs_profiles = load_ngsprofiles(my_fe)
+ngs_profiles = NA
 
 ID_SET = rownames(my_fe)
 l2col = RColorBrewer::brewer.pal(n = 3, 'Dark2')

@@ -8,7 +8,10 @@ shinyServer(function(input, output, session) {
     if(drawBorder)box()
   }
   
+  
+  
   output$detail_plot = renderPlot({
+    if(input$detail_type == detail_plot_types[2]){
     i_x = react_index_x()
     i_y = react_index_y()
     
@@ -20,10 +23,14 @@ shinyServer(function(input, output, session) {
     list_dn = intersect(rownames(disp_data), list_dn)
     sel = react_selected()
     sel = intersect(rownames(disp_data), sel)
+    
     if(length(sel) < 1){
       plot0()
       text(.5,.5, 'nothing selected')
     }else{
+      if(is.na(ngs_profiles)){
+        ngs_profiles <<- load_ngsprofiles(my_fe)
+      }
       if(T){
         plotNGS_wBG(sel, bg_ENSGcut_list = NA, list_name = colnames(my_fe)[react_index_x()], sel_name = 'Selected', linesToPlot = c(lines[i_x], lines[i_y]), smoothing = input$smoothing_window)
       }else{
@@ -31,9 +38,14 @@ shinyServer(function(input, output, session) {
       }
       #plot(colMeans(ngs_x[sel,]))
     }
+    }else{
+      plot0()
+      text(.5,.5, 'no detail plot type selected')
+    }
+    
     
   })  
-  
+
   ngs_x = reactive({
     return(ngs_profiles[[colnames(my_fe)[react_index_x()]]])
   })
@@ -304,6 +316,7 @@ shinyServer(function(input, output, session) {
   })
   
   
+  
   # Handle bush on the plot
   observeEvent(input$volcano_brush, {
     if(debug) print('brush')
@@ -342,4 +355,27 @@ shinyServer(function(input, output, session) {
     
     return(selectInput(inputId = 'y_values', label = 'Select Y value ', choices = choices, selected = choices[2]))
   })
+  
+  output$selTable = renderTable({
+    disp_data = react_displayed()
+    sel = react_selected()
+    sel = intersect(rownames(disp_data), sel)
+    
+    if(length(sel) < 1){
+      return(xtable(as.data.frame('no data selected')))
+    }
+    
+    
+    
+    sel_as_symbols = ensg_dict[sel,]$gene_name
+    sel_as_position = ensg_dict[sel,]$ucsc
+    base_url = 'https://genome.ucsc.edu/cgi-bin/hgTracks?hgS_doOtherUser=submit&hgS_otherUserName=jrboyd&hgS_otherUserSessionName=TM_K4_with_peaks'
+    sel_as_urls = paste0(base_url, '&position=', sel_as_position)
+    sel_as_urls = paste0('<a href="', sel_as_urls, '">On UCSC</a>') 
+    out_table = xtable(as.data.frame(cbind(sel, sel_as_symbols, sel_as_position, sel_as_urls)))
+    colnames(out_table) = c('ENSG ID', 'Gene Symbol', 'Position', 'Promoter in UCSC')
+    
+    return(out_table)
+    
+  }, sanitize.text.function = force)    
 })

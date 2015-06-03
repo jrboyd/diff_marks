@@ -12,8 +12,9 @@ shinyUI(fluidPage(
     column(width = 6, sliderInput(inputId = 'fg_opacity', label = 'Up/down Opacity', min = 0.05, max = 1, step = .05, value = .8))
   ),
   fluidRow(
-    column(width = 6, uiOutput(outputId = 'x_select')),
-    column(width = 6, uiOutput(outputId = 'y_select'))
+    column(width = 4, uiOutput(outputId = 'x_select')),
+    column(width = 4, uiOutput(outputId = 'y_select')),
+    column(width = 4, radioButtons(inputId = 'detail_type', label = 'Detail Plot Type', choices = detail_plot_types, selected = detail_plot_types[1]))
   ),
 #   fluidRow(
 #     column(width = 3,radioButtons(inputId = 'updown', label = 'Fold change direction', choices = c('up', 'down', 'either', 'no change'), selected = 'either'))
@@ -33,7 +34,9 @@ shinyUI(fluidPage(
            width = 6),
     column(plotOutput('detail_plot'), width = 6)
     
-  )#,
+  ),
+  tableOutput('selTable')
+#,
   #uiOutput('select_gene_list')
 )
 

@@ -4,10 +4,12 @@ source('scripts//process_MACS2_bdgdiff.R')
 source('scripts//process_MAnorm.R')
 
 load('data/my_fe_corrected.save')
-debug = F
+debug = T
 
+display_filter_choices = c('Background', 'Up', 'Down')
 selection_filter_choices = c('No filter', 'Up', 'Down', 'Unchanged')
 selection_method_choices = c('Fold Change', 'MAnorm', 'MACS2 bdgdiff')
+
 
 lines = c("MCF10A", "MCF7", "MDA231")
 lines = rep(lines, 2)

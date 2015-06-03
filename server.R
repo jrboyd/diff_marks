@@ -19,8 +19,16 @@ shinyServer(function(input, output, session) {
     #mods = c(rep('H3K4ac', 3), rep('H3K4me3', 3))
     i_x = react_index_x()
     i_y = react_index_y()
-    list_a = react_list_a()
-    list_b = react_list_b()
+    
+    disp_data = react_displayed()
+    
+    list_up = react_list_up()
+    list_up = intersect(rownames(disp_data), list_up)
+    list_dn = react_list_dn()
+    list_dn = intersect(rownames(disp_data), list_dn)
+    
+    sel = react_selected()
+    sel = intersect(rownames(disp_data), sel)
     
     #print(lines)
     try({
@@ -28,21 +36,29 @@ shinyServer(function(input, output, session) {
       name_a = column_choices[i_x]
       #print(name_a)
       name_b = column_choices[i_y]
-      scale = rep(1, nrow(my_fe)) #max(my_fe)
-      names(scale) = rownames(my_fe)
-      colors = scale_colors(data = my_fe, scale = scale, list_in = list_a, bg_color = rgb(0,0,0,1), list_color = rgb(1,0,0,1))
-      colors = scale_colors(data = my_fe, scale = scale, list_in = list_b, bg_color = rgb(0,0,0,1), list_color = rgb(0,1,0,1), colors = colors)
-      sel = react_selected()
+      scale = rep(1, nrow(disp_data)) #max(disp_data)
+      names(scale) = rownames(disp_data)
+      colors = rep(rgb(0,0,0,.1), nrow(disp_data))
+      names(colors) = rownames(disp_data)
+      if(length(list_up) > 0){
+      colors = scale_colors(data = disp_data, scale = scale, list_in = list_up, bg_color = rgb(0,0,0,1), list_color = rgb(1,0,0,1), colors = colors)
+      }
+      if(length(list_dn) > 0){
+      colors = scale_colors(data = disp_data, scale = scale, list_in = list_dn, bg_color = rgb(0,0,0,1), list_color = rgb(0,1,0,1), colors = colors)
+      }
+      
       #print(sel)
       if(length(sel) > 0){
-        colors = scale_colors(data = my_fe, scale = scale, list_in = react_selected(), bg_color = rgb(0,0,0,1), list_color = rgb(0,0,1,.7), colors = colors)
+        colors = scale_colors(data = disp_data, scale = scale, list_in = sel, bg_color = rgb(0,0,0,1), list_color = rgb(0,0,1,.7), colors = colors)
       }
       max_str = max(nchar(name_a), nchar(name_b))
       
-      note = paste0(format(name_a, width = max_str), ' - ', length(list_a), '\n', format(name_b, width = max_str), ' - ', length(list_b))
-      plot_merge(data = my_fe, list_a = list_a, list_b = list_b, colors = colors, a = i_x, b = i_y, note = note,
-                 xlab = paste(name_a, 'log2 FE'), ylab = paste(name_b, 'log2 FE'))
-    }, silent = T)
+      note = paste0(format(name_a, width = max_str), ' - ', length(list_up), '\n', format(name_b, width = max_str), ' - ', length(list_dn))
+      MIN = min(my_fe[,c(i_x, i_y)])
+      MAX = max(my_fe[,c(i_x, i_y)])
+      plot_merge(data = disp_data, list_a = list_up, list_b = list_dn, colors = colors, a = i_x, b = i_y, note = note,
+                 xlab = paste(name_a, 'log2 FE'), ylab = paste(name_b, 'log2 FE'), xlim = c(MIN, MAX), ylim = c(MIN, MAX))
+    }, silent = F)
   })
   
   output$select_gene_list = renderUI({
@@ -56,24 +72,55 @@ shinyServer(function(input, output, session) {
     ))    
   })
   
+  react_displayed = reactive({
+    if(debug) print('react_displayed')
+    displayed_data = my_fe
+    displayed_groups = input$display_filter
+    #print(displayed_groups)
+    list_up = react_list_up()
+    list_dn = react_list_dn()
+    for(disp_grp in display_filter_choices){
+      if(!any(disp_grp == displayed_groups)){#group not selected for display, remove from displayed_data.
+        if(disp_grp == display_filter_choices[1]){#bg
+          kept = union(list_up, list_dn)
+          displayed_data = displayed_data[kept,]
+        }else if(disp_grp == display_filter_choices[2]){#up
+          kept = setdiff(rownames(displayed_data), list_up)
+          #print(kept)
+          displayed_data = displayed_data[kept,]
+        }else if(disp_grp == display_filter_choices[3]){#dn
+          kept = setdiff(rownames(displayed_data), list_dn)
+          displayed_data = displayed_data[kept,]
+        }else{
+          stop('react_displayed : unrecognized display grp')
+        }
+      }
+    }
+    return(displayed_data)
+  })
+  
   react_FC = reactive({
+    if(debug) print('react_FC')
     fc_thresh = input$fc_threshold
     out = list()
     i_x = react_index_x()
     i_y = react_index_y()
-    keep = my_fe[,i_y] > (my_fe[,i_x] + fc_thresh)
-    out$up = rownames(my_fe)[keep]
-    keep = my_fe[,i_x] > (my_fe[,i_y] + fc_thresh)
-    out$down = rownames(my_fe)[keep]
+    disp_data = my_fe
+    keep = disp_data[,i_y] > (disp_data[,i_x] + fc_thresh)
+    out$up = rownames(disp_data)[keep]
+    keep = disp_data[,i_x] > (disp_data[,i_y] + fc_thresh)
+    out$down = rownames(disp_data)[keep]
     return(out)
   })
   
   react_loadMAnorm = reactive({
+    if(debug) print('react_loadMAnorm')
     out = load_MAnorm(react_index_x(), react_index_y())
     return(out)
   })
   
   react_MAnorm = reactive({
+    if(debug) print('react_MAnorm')
     out = react_loadMAnorm()
     pval_thresh = input$pval_threshold
     keep = out$res[out$up,5] > pval_thresh
@@ -84,11 +131,13 @@ shinyServer(function(input, output, session) {
   })
   
   react_loadMACS2 = reactive({
+    if(debug) print('react_loadMACS2')
     out = load_MACS2_bdgdiff(react_index_x(), react_index_y())
     return(out)
   })
   
   react_MACS2 = reactive({
+    if(debug) print('react_MACS2')
     out = react_loadMACS2()
     pval_thresh = input$pval_threshold
     keep = out$res[out$up,5] > pval_thresh
@@ -121,7 +170,8 @@ shinyServer(function(input, output, session) {
     return(new_list)
   }
   
-  react_list_a = reactive({
+  react_list_up = reactive({
+    if(debug) print('react_list_up')
     direction = 'up'
     sel_methods = input$available_methods
     return(process_lists(direction, sel_methods))
@@ -129,7 +179,8 @@ shinyServer(function(input, output, session) {
   
   
   
-  react_list_b = reactive({
+  react_list_dn = reactive({
+    if(debug) print('react_list_dn')
     direction = 'down'
     sel_methods = input$available_methods
     return(process_lists(direction, sel_methods))
@@ -138,6 +189,7 @@ shinyServer(function(input, output, session) {
   
   
   react_index_x = reactive({
+    if(debug) print('react_index_x')
     sel = name2index[input$x_values]
     if(is.null(sel)) sel = 1
     if(length(sel) < 1) sel = 1
@@ -146,49 +198,52 @@ shinyServer(function(input, output, session) {
   })
   
   react_index_y = reactive({
+    if(debug) print('react_index_y')
     sel = name2index[input$y_values]
     if(is.null(sel)) sel = 2
     if(length(sel) < 1) sel = 2
     return(sel)
   })
   
-  filter_selections = function(filter, sel, list_a, list_b){
+  filter_selections = function(filter, sel, list_up, list_dn){
     filter = input$selection_filter
     if(length(sel) > 0){
       if(filter == selection_filter_choices[2]){#up
-        sel = intersect(sel, list_a)
+        sel = intersect(sel, list_up)
         #print(sel)
       }else if(filter == selection_filter_choices[3]){#down
-        sel = intersect(sel, list_b)
+        sel = intersect(sel, list_dn)
       }else if(filter == selection_filter_choices[4]){#unchanged
-        sel = setdiff(sel, list_a)
-        sel = setdiff(sel, list_b)
+        sel = setdiff(sel, list_up)
+        sel = setdiff(sel, list_dn)
       }
     }
     return(sel)
   }
   
   react_selected = reactive({
+    if(debug) print('react_selected')
     new_selection = character()
-    list_a = react_list_a()
-    list_b = react_list_b()
+    list_up = react_list_up()
+    list_dn = react_list_dn()
     i_x = react_index_x()
     i_y = react_index_y()
     filter = input$selection_filter
+    disp_data = react_displayed()
     
     if(!is.null(v$brush)){
-      keep = (my_fe[,i_x] > v$brush$xmin & my_fe[,i_x] < v$brush$xmax) &
-        (my_fe[,i_y] > v$brush$ymin & my_fe[,i_y] < v$brush$ymax)
-      new_selection = rownames(my_fe)[keep]
-      new_selection = filter_selections(filter, new_selection, list_a, list_b)
+      keep = (disp_data[,i_x] > v$brush$xmin & disp_data[,i_x] < v$brush$xmax) &
+        (disp_data[,i_y] > v$brush$ymin & disp_data[,i_y] < v$brush$ymax)
+      new_selection = rownames(disp_data)[keep]
+      new_selection = filter_selections(filter, new_selection, list_up, list_dn)
     }else if(!is.null(v$click1)){
-      data_dist = abs(my_fe[,i_x] - v$click1$x) + abs(my_fe[,i_y] - v$click1$y)
+      data_dist = abs(disp_data[,i_x] - v$click1$x) + abs(disp_data[,i_y] - v$click1$y)
       closest = names(sort(data_dist))
-      closest = filter_selections(filter, closest, list_a, list_b)
+      closest = filter_selections(filter, closest, list_up, list_dn)
       new_selection = closest[1]
       
     }else{
-      new_selection = filter_selections(filter, new_selection, list_a, list_b)
+      new_selection = filter_selections(filter, new_selection, list_up, list_dn)
     }
     
     

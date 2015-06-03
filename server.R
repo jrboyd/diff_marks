@@ -8,10 +8,39 @@ shinyServer(function(input, output, session) {
     if(drawBorder)box()
   }
   
-  output$venn = renderPlot({
-    plot0()
-    text(.5,.5, 'venn')
+  output$detail_plot = renderPlot({
+    i_x = react_index_x()
+    i_y = react_index_y()
+    
+    disp_data = react_displayed()
+    
+    list_up = react_list_up()
+    list_up = intersect(rownames(disp_data), list_up)
+    list_dn = react_list_dn()
+    list_dn = intersect(rownames(disp_data), list_dn)
+    sel = react_selected()
+    sel = intersect(rownames(disp_data), sel)
+    if(length(sel) < 1){
+      plot0()
+      text(.5,.5, 'nothing selected')
+    }else{
+      if(T){
+        plotNGS_wBG(sel, bg_ENSGcut_list = NA, list_name = colnames(my_fe)[react_index_x()], sel_name = 'Selected', linesToPlot = c(lines[i_x], lines[i_y]), smoothing = input$smoothing_window)
+      }else{
+        plotNGS_wBG(sel, bg_ENSGcut_list = setdiff(rownames(react_displayed()), sel), list_name = colnames(my_fe)[react_index_x()], sel_name = 'Selected')
+      }
+      #plot(colMeans(ngs_x[sel,]))
+    }
+    
   })  
+  
+  ngs_x = reactive({
+    return(ngs_profiles[[colnames(my_fe)[react_index_x()]]])
+  })
+  
+  ngs_y = reactive({
+    return(ngs_profiles[[colnames(my_fe)[react_index_y()]]])
+  })
   
   output$volcano =  renderPlot({
     
@@ -36,20 +65,21 @@ shinyServer(function(input, output, session) {
       name_a = column_choices[i_x]
       #print(name_a)
       name_b = column_choices[i_y]
+      
       scale = rep(1, nrow(disp_data)) #max(disp_data)
       names(scale) = rownames(disp_data)
-      colors = rep(rgb(0,0,0,.1), nrow(disp_data))
+      colors = rep(rgb(0,0,0,input$bg_opacity), nrow(disp_data))
       names(colors) = rownames(disp_data)
       if(length(list_up) > 0){
-      colors = scale_colors(data = disp_data, scale = scale, list_in = list_up, bg_color = rgb(0,0,0,1), list_color = rgb(1,0,0,1), colors = colors)
+      colors = scale_colors(data = disp_data, scale = scale, list_in = list_up, bg_color = rgb(0,0,0,input$bg_opacity), list_color = rgb(1,0,0,input$fg_opacity), colors = colors)
       }
       if(length(list_dn) > 0){
-      colors = scale_colors(data = disp_data, scale = scale, list_in = list_dn, bg_color = rgb(0,0,0,1), list_color = rgb(0,1,0,1), colors = colors)
+      colors = scale_colors(data = disp_data, scale = scale, list_in = list_dn, bg_color = rgb(0,0,0,input$bg_opacity), list_color = rgb(0,1,0,input$fg_opacity), colors = colors)
       }
       
       #print(sel)
       if(length(sel) > 0){
-        colors = scale_colors(data = disp_data, scale = scale, list_in = sel, bg_color = rgb(0,0,0,1), list_color = rgb(0,0,1,.7), colors = colors)
+        colors = scale_colors(data = disp_data, scale = scale, list_in = sel, bg_color = rgb(0,0,0,input$bg_opacity), list_color = rgb(0,0,1,input$fg_opacity), colors = colors)
       }
       max_str = max(nchar(name_a), nchar(name_b))
       
@@ -57,7 +87,7 @@ shinyServer(function(input, output, session) {
       MIN = min(my_fe[,c(i_x, i_y)])
       MAX = max(my_fe[,c(i_x, i_y)])
       plot_merge(data = disp_data, list_a = list_up, list_b = list_dn, colors = colors, a = i_x, b = i_y, note = note,
-                 xlab = paste(name_a, 'log2 FE'), ylab = paste(name_b, 'log2 FE'), xlim = c(MIN, MAX), ylim = c(MIN, MAX))
+                 xlab = paste(name_a, 'log2 FE'), ylab = paste(name_b, 'log2 FE'), xlim = c(MIN, MAX), ylim = c(MIN, MAX), cex = .8)
     }, silent = F)
   })
   
@@ -113,6 +143,7 @@ shinyServer(function(input, output, session) {
     return(out)
   })
   
+  
   react_loadMAnorm = reactive({
     if(debug) print('react_loadMAnorm')
     out = load_MAnorm(react_index_x(), react_index_y())
@@ -129,7 +160,7 @@ shinyServer(function(input, output, session) {
     out$down = out$down[keep]
     return(out)
   })
-  
+    
   react_loadMACS2 = reactive({
     if(debug) print('react_loadMACS2')
     out = load_MACS2_bdgdiff(react_index_x(), react_index_y())

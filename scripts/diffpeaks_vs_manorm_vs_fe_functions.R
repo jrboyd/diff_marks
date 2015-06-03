@@ -141,7 +141,7 @@ plot_bg = function(data, lists_excluded, colors, a, b, note = "", scale = NA, ..
   toSort[list_b] = colors[list_b]
   o = order(toSort, decreasing = T)
   #joined plot
-  custom_plot(data[o,a], data[o,b], colors[o], txt = note, cex = 1.5, ...)
+  custom_plot(data[o,a], data[o,b], colors[o], txt = note, ...)
 }
 
 plot_2lists = function(data, list_a, list_b, a, b, scale = NA, plot_title = 'TITLE'){
@@ -178,7 +178,7 @@ plot_2lists = function(data, list_a, list_b, a, b, scale = NA, plot_title = 'TIT
   plot_bg(data, list(list_a, list_b), colors, a, b, note, scale, xlim = c(MIN, MAX), ylim = c(MIN, MAX), axes = F)
   
   note = paste0('merge', ':', nrow(data))
-  plot_merge(data, list_a, list_b, colors, a, b, note, xlim = c(MIN, MAX), ylim = c(MIN, MAX), axes = F)
+  plot_merge(data, list_a, list_b, colors, a, b, note, xlim = c(MIN, MAX), ylim = c(MIN, MAX), axes = F, cex = 1.5)
 #   
 #   toSort = rep(0, length(colors))
 #   names(toSort) = rownames(data)

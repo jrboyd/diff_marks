@@ -14,7 +14,7 @@ shinyUI(fluidPage(
   fluidRow(
     column(width = 4, uiOutput(outputId = 'x_select')),
     column(width = 4, uiOutput(outputId = 'y_select')),
-    column(width = 4, radioButtons(inputId = 'detail_type', label = 'Detail Plot Type', choices = detail_plot_types, selected = detail_plot_types[1]))
+    column(width = 4, radioButtons(inputId = 'detail_type', label = 'Detail Plot Type', choices = detail_plot_types, selected = detail_plot_types[4]))
   ),
 #   fluidRow(
 #     column(width = 3,radioButtons(inputId = 'updown', label = 'Fold change direction', choices = c('up', 'down', 'either', 'no change'), selected = 'either'))

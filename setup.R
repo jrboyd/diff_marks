@@ -4,6 +4,7 @@ library("RColorBrewer")
 source("scripts/diffpeaks_vs_manorm_vs_fe.R")
 source("scripts//process_MACS2_bdgdiff.R")
 source("scripts//process_MAnorm.R")
+source("scripts//jrb_R_scripts//heatmap.3-split.R")
 
 load("data/my_fe_corrected.save")
 debug = F

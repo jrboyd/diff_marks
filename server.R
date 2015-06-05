@@ -9,9 +9,7 @@ shinyServer(function(input, output, session) {
   }
   
   
-  
   output$detail_plot = renderPlot({
-    if(input$detail_type == detail_plot_types[2]){
     i_x = react_index_x()
     i_y = react_index_y()
     
@@ -24,28 +22,57 @@ shinyServer(function(input, output, session) {
     sel = react_selected()
     sel = intersect(rownames(disp_data), sel)
     
-    if(length(sel) < 1){
-      plot0()
-      text(.5,.5, 'nothing selected')
-    }else{
-      if(is.na(ngs_profiles)[1]){
-        ngs_profiles <<- load_ngsprofiles(my_fe)
-      }
-      if(T){
-        plotNGS_wBG(sel, bg_ENSGcut_list = NA, list_name = colnames(my_fe)[react_index_x()], sel_name = 'Selected', linesToPlot = c(lines[i_x], lines[i_y]), smoothing = input$smoothing_window)
+    clear_hmap_res = T
+    
+    if(input$detail_type == detail_plot_types[2]){#ngs profiles
+      if(length(sel) < 1){
+        plot0()
+        text(.5,.5, 'nothing selected')
       }else{
-        plotNGS_wBG(sel, bg_ENSGcut_list = setdiff(rownames(react_displayed()), sel), list_name = colnames(my_fe)[react_index_x()], sel_name = 'Selected')
+        if(is.na(ngs_profiles)[1]){
+          ngs_profiles <<- load_ngsprofiles(my_fe)
+        }
+        plotNGS_wBG(sel, bg_ENSGcut_list = NA, list_name = colnames(my_fe)[react_index_x()], sel_name = 'Selected', linesToPlot = c(lines[i_x], lines[i_y]), smoothing = input$smoothing_window)
+        #plot(colMeans(ngs_x[sel,]))
       }
-      #plot(colMeans(ngs_x[sel,]))
-    }
+    }else if(input$detail_type == detail_plot_types[3]){#ngs heatmaps
+      if(length(sel) < 1){
+        plot0()
+        text(.5,.5, 'nothing selected')
+      }else{
+        if(is.na(ngs_profiles)[1]){
+          ngs_profiles <<- load_ngsprofiles(my_fe)
+        }
+        sample_a = sub(' ', '_', colnames(my_fe)[i_x])
+        sample_b = sub(' ', '_', colnames(my_fe)[i_y])
+        plotNGS_heatmap(sel, sample_a, sample_b)
+        #plot(colMeans(ngs_x[sel,]))
+      }
+    }else if(input$detail_type == detail_plot_types[4]){#heatmap of all cell lines and mods
+      if(length(sel) < 1){
+        plot0()
+        text(.5,.5, 'nothing selected')
+      }else if(length(sel) == 1){
+        par(mai = c(2,1,1,1))
+        plot(1:ncol(disp_data), disp_data[sel,], axes = F, xlab = '', ylab = 'log2 FE')
+        box()
+        axis(side = 2)
+        axis(side = 1, at = 1:ncol(my_fe), labels = colnames(my_fe), las = 2)
+        title(ensg_dict[sel,]$gene_name)
+      }else{
+        res = heatmap.3(disp_data[sel,], nsplits = 2, classCount = min(6, length(sel)), main = paste(length(sel), 'selected genes'), key.xlab = 'log2 FE', key.title = '')
+        v$hmap_res = res
+        clear_hmap_res = F
+      }
+      
     }else{
       plot0()
       text(.5,.5, 'no detail plot type selected')
     }
-    
-    
-  })  
-
+    if(clear_hmap_res) v$hmap_res = NULL
+  })
+  
+  
   ngs_x = reactive({
     return(ngs_profiles[[colnames(my_fe)[react_index_x()]]])
   })
@@ -302,7 +329,8 @@ shinyServer(function(input, output, session) {
   v <- reactiveValues(
     click1 = NULL,  # Represents the first mouse click, if any
     n = 0,
-    brush = NULL
+    brush = NULL,
+    hmap_res = NULL
     #selected = character()
   )
   
@@ -372,16 +400,39 @@ shinyServer(function(input, output, session) {
     }
     
     
-    
-    sel_as_symbols = ensg_dict[sel,]$gene_name
-    sel_as_position = ensg_dict[sel,]$ucsc
-    base_url = 'https://genome.ucsc.edu/cgi-bin/hgTracks?hgS_doOtherUser=submit&hgS_otherUserName=jrboyd&hgS_otherUserSessionName=TM_K4_with_peaks'
-    sel_as_urls = paste0(base_url, '&position=', sel_as_position)
-    sel_as_urls = paste0('<a target="_blank" href="', sel_as_urls, '">On UCSC</a>') 
-    out_table = xtable(as.data.frame(cbind(sel, sel_as_symbols, sel_as_position, sel_as_urls)))
-    colnames(out_table) = c('ENSG ID', 'Gene Symbol', 'Position', 'Promoter in UCSC')
-    
-    return(out_table)
+    if(is.null(v$hmap_res)){
+      sel_as_symbols = ensg_dict[sel,]$gene_name
+      sel_as_position = ensg_dict[sel,]$ucsc
+      base_url = 'https://genome.ucsc.edu/cgi-bin/hgTracks?hgS_doOtherUser=submit&hgS_otherUserName=jrboyd&hgS_otherUserSessionName=TM_K4_with_peaks'
+      sel_as_urls = paste0(base_url, '&position=', sel_as_position)
+      sel_as_urls = paste0('<a target="_blank" href="', sel_as_urls, '">On UCSC</a>') 
+      out_table = xtable(as.data.frame(cbind(sel, sel_as_symbols, sel_as_position, sel_as_urls)))
+      colnames(out_table) = c('ENSG ID', 'Gene Symbol', 'Position', 'Promoter in UCSC')
+      
+      return(out_table)
+    }else{
+      res = v$hmap_res
+      colors = res[[4]]
+      asPlotted = rownames(res[[3]])
+      classSizes = res[[1]]
+      ensg2colors = rep(colors[1], length(asPlotted))
+      names(ensg2colors) = asPlotted
+      for(i in 2:length(colors)){
+        start = sum(classSizes[1:(i-1)]) + 1
+        end = sum(classSizes[1:i])
+        ensg2colors[start:end] = colors[i]
+      }
+      sel = asPlotted
+      sel_as_symbols = ensg_dict[sel,]$gene_name
+      sel_as_position = ensg_dict[sel,]$ucsc
+      base_url = 'https://genome.ucsc.edu/cgi-bin/hgTracks?hgS_doOtherUser=submit&hgS_otherUserName=jrboyd&hgS_otherUserSessionName=TM_K4_with_peaks'
+      sel_as_urls = paste0(base_url, '&position=', sel_as_position)
+      sel_as_urls = paste0('<a target="_blank" href="', sel_as_urls, '">On UCSC</a>') 
+      out_table = xtable(as.data.frame(cbind(sel, sel_as_symbols, sel_as_position, sel_as_urls, paste0('<td bgcolor="', ensg2colors, '">',sel_as_symbols,'</td>'))))
+      colnames(out_table) = c('ENSG ID', 'Gene Symbol', 'Position', 'Promoter in UCSC', 'Cluster')
+      rownames(out_table) = NULL
+      return(out_table)
+    }
     
   }, sanitize.text.function = force)    
 })

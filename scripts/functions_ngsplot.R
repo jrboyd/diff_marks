@@ -1,34 +1,35 @@
 source("scripts/functions_movingAverage.R")
 
 load_ngsprofiles = function(mark_data) {
-    ngs_file = "data/ngs_profiles.save"
-    if (!file.exists(ngs_file)) {
-        print("pre-calculated ngs data not found, calculating profiles...")
-        ngs_profiles = list()
-        for (n in sub(" ", "_", colnames(mark_data))) {
-            
-            in_dir = dir("data/ngsplot_data", full.names = T, pattern = n)
-            
-            fname = paste(in_dir, "/heatmap.RData", sep = "")
-            print(paste("loading ngs data from", fname, "..."))
-            load(fname)
-            tmp = enrichList[[1]]
-            ensgs = rownames(tmp)
-            ensgs = unlist(lapply(strsplit(ensgs, ":"), function(x) return(x[1])))
-            strand = tmp[2:nrow(tmp), 4]
-            dat = tmp
-            rownames(dat) = ensgs
-            dat = dat[intersect(rownames(dat), rownames(mark_data)), ]
-            # rownames(dat) = ensg2cut[rownames(dat)]
-            ngs_profiles[[n]] = dat
-        }
-        save(ngs_profiles, file = ngs_file)
-        print(paste("done! file is saved as", ngs_file))
-    } else {
-        print("loading pre-calculated ngs profiles")
-        load(ngs_file)
+  #if(exists('ngs_profiles')) return(ngs_profiles)
+  ngs_file = "data/ngs_profiles.save"
+  if (!file.exists(ngs_file)) {
+    print("pre-calculated ngs data not found, calculating profiles...")
+    ngs_profiles = list()
+    for (n in sub(" ", "_", colnames(mark_data))) {
+      
+      in_dir = dir("data/ngsplot_data", full.names = T, pattern = n)
+      
+      fname = paste(in_dir, "/heatmap.RData", sep = "")
+      print(paste("loading ngs data from", fname, "..."))
+      load(fname)
+      tmp = enrichList[[1]]
+      ensgs = rownames(tmp)
+      ensgs = unlist(lapply(strsplit(ensgs, ":"), function(x) return(x[1])))
+      strand = tmp[2:nrow(tmp), 4]
+      dat = tmp
+      rownames(dat) = ensgs
+      dat = dat[intersect(rownames(dat), rownames(mark_data)), ]
+      # rownames(dat) = ensg2cut[rownames(dat)]
+      ngs_profiles[[n]] = dat
     }
-    return(ngs_profiles)
+    save(ngs_profiles, file = ngs_file)
+    print(paste("done! file is saved as", ngs_file))
+  } else {
+    print("loading pre-calculated ngs profiles")
+    load(ngs_file)
+  }
+  return(ngs_profiles)
 }
 
 
@@ -46,6 +47,19 @@ applyWindow = function(dat, win = 10) {
 }
 
 # plotNGS_geneList = function(geneList, ymax = 4){ }
+plotNGS_heatmap = function(sel, sample_a, sample_b){
+  dat_a = ngs_profiles[[sample_a]][sel,, drop = F]
+  dat_b = ngs_profiles[[sample_b]][sel,, drop = F]
+  toPlot = cbind(dat_a, dat_b)
+  if(nrow(toPlot) > 2){
+    heatmap.3(toPlot, nsplits = 2, classCount = 3)
+  } else {
+    plot0()
+    text(.5,.5, 'select at least 3 genes')
+  }
+  
+}
+
 
 plotNGS_wBG = function(fg_ENSGcut_list, bg_ENSGcut_list = NA, list_name, sel_name = "selected", invert = F, ymax = NA, linesToPlot = c("MCF10A", "MCF7", "MDA231"), smoothing = 1) {
     # plot ngs profile style plots ENSGcut_list : is a character vector of cut ensg ids, cut means version number removed list_name : name or description of input list,

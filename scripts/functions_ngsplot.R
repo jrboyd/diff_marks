@@ -1,206 +1,196 @@
 source("scripts/functions_movingAverage.R")
 
-load_ngsprofiles = function(mark_data){
-  ngs_file = 'data/ngs_profiles.save'
-  if(!file.exists(ngs_file)){
-    print('pre-calculated ngs data not found, calculating profiles...')
-    ngs_profiles = list()
-    for(n in sub(' ', '_', colnames(mark_data))){
-      
-      in_dir = dir('data/ngsplot_data', full.names = T, pattern = n)
-      
-      fname = paste(in_dir, '/heatmap.RData', sep = "")
-      print(paste('loading ngs data from', fname, '...'))
-      load(fname)
-      tmp = enrichList[[1]]
-      ensgs = rownames(tmp)
-      ensgs = unlist(lapply(strsplit(ensgs, ':'), function(x)return(x[1])))
-      strand = tmp[2:nrow(tmp),4]
-      dat = tmp
-      rownames(dat) = ensgs
-      dat = dat[intersect(rownames(dat), rownames(mark_data)),]
-      #rownames(dat) = ensg2cut[rownames(dat)]
-      ngs_profiles[[n]] = dat
+load_ngsprofiles = function(mark_data) {
+    ngs_file = "data/ngs_profiles.save"
+    if (!file.exists(ngs_file)) {
+        print("pre-calculated ngs data not found, calculating profiles...")
+        ngs_profiles = list()
+        for (n in sub(" ", "_", colnames(mark_data))) {
+            
+            in_dir = dir("data/ngsplot_data", full.names = T, pattern = n)
+            
+            fname = paste(in_dir, "/heatmap.RData", sep = "")
+            print(paste("loading ngs data from", fname, "..."))
+            load(fname)
+            tmp = enrichList[[1]]
+            ensgs = rownames(tmp)
+            ensgs = unlist(lapply(strsplit(ensgs, ":"), function(x) return(x[1])))
+            strand = tmp[2:nrow(tmp), 4]
+            dat = tmp
+            rownames(dat) = ensgs
+            dat = dat[intersect(rownames(dat), rownames(mark_data)), ]
+            # rownames(dat) = ensg2cut[rownames(dat)]
+            ngs_profiles[[n]] = dat
+        }
+        save(ngs_profiles, file = ngs_file)
+        print(paste("done! file is saved as", ngs_file))
+    } else {
+        print("loading pre-calculated ngs profiles")
+        load(ngs_file)
     }
-    save(ngs_profiles, file = ngs_file)
-    print(paste('done! file is saved as', ngs_file))
-  }else{
-    print('loading pre-calculated ngs profiles')
-    load(ngs_file)
-  }
-  return(ngs_profiles)
+    return(ngs_profiles)
 }
 
 
-applyWindow = function(dat, win = 10){
-  if(win < 2)
-    return(dat)
-  out = matrix(0, nrow = nrow(dat), ncol = ncol(dat)/win)
-  for(i in 1:ncol(out)){
-    start = (i-1)*win+1
-    end = i*win
-    #out[,i] = apply(dat[,start:end],1,median)
-    out[,i] = rowMeans(dat[,start:end])
-  }
-  return(out)
+applyWindow = function(dat, win = 10) {
+    if (win < 2) 
+        return(dat)
+    out = matrix(0, nrow = nrow(dat), ncol = ncol(dat)/win)
+    for (i in 1:ncol(out)) {
+        start = (i - 1) * win + 1
+        end = i * win
+        # out[,i] = apply(dat[,start:end],1,median)
+        out[, i] = rowMeans(dat[, start:end])
+    }
+    return(out)
 }
 
-# plotNGS_geneList = function(geneList, ymax = 4){
-#   
-# }
+# plotNGS_geneList = function(geneList, ymax = 4){ }
 
-plotNGS_wBG = function(fg_ENSGcut_list, bg_ENSGcut_list = NA, list_name, sel_name = 'selected', invert = F, ymax = NA, linesToPlot = c('MCF10A', 'MCF7', 'MDA231'), smoothing = 1){
-  #plot ngs profile style plots
-  #ENSGcut_list : is a character vector of cut ensg ids, cut means version number removed
-  #list_name : name or description of input list, used in title
-  #invert : if T, everything not in list will be plotted
-  #ymax : the upper ylim for plots
-  layout(matrix(c(1:4), ncol = 1, byrow = T))
-  par(mai = c(0,1,0,.2))
-  fg_lwd = 3
-  bg_lwd = 3
-  bg_lty = 2
-  bg_pch = 21
-  
-  xs = 0:100
-  xs = (20 * xs) - 1000
-  
-  bg_keep = character()
-  if(!is.na(bg_ENSGcut_list)){
-    bg_keep = bg_ENSGcut_list
-    if(length(bg_keep) < 2 && is.na(bg_keep)){
-      bg_keep = ID_SET
-    }
-    if(invert){
-      tmp = rep(T, length(ID_SET))
-      names(tmp) = ID_SET
-      tmp[bg_keep] = F
-      bg_keep = ID_SET[tmp]
-    }
-    bg_keep = intersect(bg_keep, ID_SET)
-  }
-  #   if(length(fg_keep) < 2 && is.na(fg_keep)){
-  #     fg_keep = ID_SET
-  #   }
-  fg_keep = fg_ENSGcut_list
-  if(invert){
-    tmp = rep(T, length(ID_SET))
-    names(tmp) = ID_SET
-    tmp[fg_keep] = F
-    fg_keep = ID_SET[tmp]
-  }
-  
-  fg_keep = intersect(fg_keep, ID_SET)
-  
-  plot(c(0,1),c(0,1), type = 'n', axes = F, xlab = '', ylab = '')
-  #if(!is.na(bg_ENSGcut_list)){
-  text(.7,.5,paste(list_name, '\n', length(bg_keep) + length(fg_keep),' genes', sep = ''), cex = 1.5)
-  #}
-  legend(x = 0, y = .7,legend = lines[1:3], fill = l2col[lines[1:3]], bty = 'n')
-  if(!is.na(bg_ENSGcut_list)){
-    legend(x = 0, y = .4,legend = c(paste(length(fg_keep), 'genes in', sel_name), paste(length(bg_keep), 'other genes in list')), lty = c(3,1), bty = 'n', lwd = 2)
-  }
-  
-  
-  
-  if(is.na(ymax)){
-    ymax = 0
-    for(l in linesToPlot){
-      ac_d = ngs_profiles[[paste(l,'H3K4AC',  sep = '_')]]
-      me_d = ngs_profiles[[paste(l,'H3K4ME3',  sep = '_')]]
-      ymax = max(ymax, max(colMeans(ac_d[fg_keep,, drop = F])))
-      ymax = max(ymax, max(colMeans(me_d[fg_keep,, drop = F])))
-    }
-  }
-  
-  plot(c(0,1), type = 'n', xlim = c(-1000,1000), ylim = c(0,ymax), ylab = 'H3K4ac', lwd = 2, xaxt = 'n')
-  
-  plot.line_style = function(keep, dat, l){
-    toPlot = colMeans(dat[keep,, drop = F])
-    if(smoothing > 1){
-      toPlot = movingAverage(toPlot, n = smoothing)
-    }
-    lines(xs, toPlot, col = l2col[l], lwd = fg_lwd, lty = 1)
+plotNGS_wBG = function(fg_ENSGcut_list, bg_ENSGcut_list = NA, list_name, sel_name = "selected", invert = F, ymax = NA, linesToPlot = c("MCF10A", "MCF7", "MDA231"), smoothing = 1) {
+    # plot ngs profile style plots ENSGcut_list : is a character vector of cut ensg ids, cut means version number removed list_name : name or description of input list,
+    # used in title invert : if T, everything not in list will be plotted ymax : the upper ylim for plots
+    layout(matrix(c(1:4), ncol = 1, byrow = T))
+    par(mai = c(0, 1, 0, 0.2))
+    fg_lwd = 3
+    bg_lwd = 3
+    bg_lty = 2
+    bg_pch = 21
     
-  }
-  plot.point_style = function(keep, dat, l){
-    toPlot = colMeans(dat[keep,, drop = F])
-    if(smoothing > 1){
-      toPlot = movingAverage(toPlot, n = smoothing)
+    xs = 0:100
+    xs = (20 * xs) - 1000
+    
+    bg_keep = character()
+    if (!is.na(bg_ENSGcut_list)) {
+        bg_keep = bg_ENSGcut_list
+        if (length(bg_keep) < 2 && is.na(bg_keep)) {
+            bg_keep = ID_SET
+        }
+        if (invert) {
+            tmp = rep(T, length(ID_SET))
+            names(tmp) = ID_SET
+            tmp[bg_keep] = F
+            bg_keep = ID_SET[tmp]
+        }
+        bg_keep = intersect(bg_keep, ID_SET)
     }
-    points(xs, toPlot, col = l2col[l], pch = 19, cex = 1)
-  }
-  
-  for(l in linesToPlot){
-    ac_d = ngs_profiles[[paste(l,'H3K4AC',  sep = '_')]]
-    plot.line_style(fg_keep, ac_d, l)
-    #points(xs, colMeans(ac_d[fg_keep,]), col = l2col[l], pch = 19, cex = 1)
-  }
-  if(!is.na(bg_ENSGcut_list)){
-    for(l in linesToPlot){
-      ac_d = ngs_profiles[[paste(l,'H3K4AC',  sep = '_')]]
-      plot.point_style(bg_keep, ac_d, l)
-      #lines(xs, colMeans(ac_d[bg_keep,]), col = l2col[l], lwd = fg_lwd, lty = 1)
+    # if(length(fg_keep) < 2 && is.na(fg_keep)){ fg_keep = ID_SET }
+    fg_keep = fg_ENSGcut_list
+    if (invert) {
+        tmp = rep(T, length(ID_SET))
+        names(tmp) = ID_SET
+        tmp[fg_keep] = F
+        fg_keep = ID_SET[tmp]
     }
-  }
-  
-  plot(c(0,1), type = 'n', xlim = c(-1000,1000), ylim = c(0,ymax), ylab = 'H3K4me3', lwd = 2)
-  for(l in linesToPlot){
-    me_d = ngs_profiles[[paste(l,'H3K4ME3',  sep = '_')]]
-    plot.line_style(fg_keep, me_d, l)
-    #points(xs, colMeans(me_d[fg_keep,]), col = l2col[l], pch = 19, cex = 1)
-  }
-  if(!is.na(bg_ENSGcut_list)){
-    for(l in linesToPlot){
-      me_d = ngs_profiles[[paste(l,'H3K4ME3',  sep = '_')]]
-      plot.point_style(bg_keep, me_d, l)
-      #lines(xs, colMeans(me_d[bg_keep,]), col = l2col[l], lwd = fg_lwd, lty = 1)
+    
+    fg_keep = intersect(fg_keep, ID_SET)
+    
+    plot(c(0, 1), c(0, 1), type = "n", axes = F, xlab = "", ylab = "")
+    # if(!is.na(bg_ENSGcut_list)){
+    text(0.7, 0.5, paste(list_name, "\n", length(bg_keep) + length(fg_keep), " genes", sep = ""), cex = 1.5)
+    # }
+    legend(x = 0, y = 0.7, legend = lines[1:3], fill = l2col[lines[1:3]], bty = "n")
+    if (!is.na(bg_ENSGcut_list)) {
+        legend(x = 0, y = 0.4, legend = c(paste(length(fg_keep), "genes in", sel_name), paste(length(bg_keep), "other genes in list")), lty = c(3, 1), bty = "n", lwd = 2)
     }
-  }
-  plot(c(0,1),c(0,1), type = 'n', axes = F, xlab = '', ylab = '')
+    
+    
+    
+    if (is.na(ymax)) {
+        ymax = 0
+        for (l in linesToPlot) {
+            ac_d = ngs_profiles[[paste(l, "H3K4AC", sep = "_")]]
+            me_d = ngs_profiles[[paste(l, "H3K4ME3", sep = "_")]]
+            ymax = max(ymax, max(colMeans(ac_d[fg_keep, , drop = F])))
+            ymax = max(ymax, max(colMeans(me_d[fg_keep, , drop = F])))
+        }
+    }
+    
+    plot(c(0, 1), type = "n", xlim = c(-1000, 1000), ylim = c(0, ymax), ylab = "H3K4ac", lwd = 2, xaxt = "n")
+    
+    plot.line_style = function(keep, dat, l) {
+        toPlot = colMeans(dat[keep, , drop = F])
+        if (smoothing > 1) {
+            toPlot = movingAverage(toPlot, n = smoothing)
+        }
+        lines(xs, toPlot, col = l2col[l], lwd = fg_lwd, lty = 1)
+        
+    }
+    plot.point_style = function(keep, dat, l) {
+        toPlot = colMeans(dat[keep, , drop = F])
+        if (smoothing > 1) {
+            toPlot = movingAverage(toPlot, n = smoothing)
+        }
+        points(xs, toPlot, col = l2col[l], pch = 19, cex = 1)
+    }
+    
+    for (l in linesToPlot) {
+        ac_d = ngs_profiles[[paste(l, "H3K4AC", sep = "_")]]
+        plot.line_style(fg_keep, ac_d, l)
+        # points(xs, colMeans(ac_d[fg_keep,]), col = l2col[l], pch = 19, cex = 1)
+    }
+    if (!is.na(bg_ENSGcut_list)) {
+        for (l in linesToPlot) {
+            ac_d = ngs_profiles[[paste(l, "H3K4AC", sep = "_")]]
+            plot.point_style(bg_keep, ac_d, l)
+            # lines(xs, colMeans(ac_d[bg_keep,]), col = l2col[l], lwd = fg_lwd, lty = 1)
+        }
+    }
+    
+    plot(c(0, 1), type = "n", xlim = c(-1000, 1000), ylim = c(0, ymax), ylab = "H3K4me3", lwd = 2)
+    for (l in linesToPlot) {
+        me_d = ngs_profiles[[paste(l, "H3K4ME3", sep = "_")]]
+        plot.line_style(fg_keep, me_d, l)
+        # points(xs, colMeans(me_d[fg_keep,]), col = l2col[l], pch = 19, cex = 1)
+    }
+    if (!is.na(bg_ENSGcut_list)) {
+        for (l in linesToPlot) {
+            me_d = ngs_profiles[[paste(l, "H3K4ME3", sep = "_")]]
+            plot.point_style(bg_keep, me_d, l)
+            # lines(xs, colMeans(me_d[bg_keep,]), col = l2col[l], lwd = fg_lwd, lty = 1)
+        }
+    }
+    plot(c(0, 1), c(0, 1), type = "n", axes = F, xlab = "", ylab = "")
 }
 
 
-plotNGS = function(ENSGcut_list, list_name, invert = F, ymax = 4, linesToPlot = c('MCF10A', 'MCF7', 'MDA231')){
-  #plot ngs profile style plots
-  #ENSGcut_list : is a character vector of cut ensg ids, cut means version number removed
-  #list_name : name or description of input list, used in title
-  #invert : if T, everything not in list will be plotted
-  #ymax : the upper ylim for plots
-  layout(matrix(c(1:4), ncol = 1, byrow = T))
-  par(mai = c(0,1,0,.2))
-  xs = 0:100
-  xs = (20 * xs) - 1000
-  keep = ENSGcut_list
-  if(length(keep) < 2 && is.na(keep)){
-    keep = ID_SET
-  }
-  if(invert){
-    tmp = rep(T, length(ID_SET))
-    names(tmp) = ID_SET
-    tmp[keep] = F
-    keep = ID_SET[tmp]
-  }
-  plot(c(0,1),c(0,1), type = 'n', axes = F, xlab = '', ylab = '')
-  text(.5,.5,paste(list_name, '\n', length(keep),' genes', sep = ''), cex = 1.5)
-  legend(x = 'left',legend = lines, fill = l2col[lines], bty = 'n')
-  plot(c(0,1), type = 'n', xlim = c(-1000,1000), ylim = c(0,ymax), ylab = 'H3K4ac', lwd = 2, xaxt = 'n')
-  for(l in linesToPlot){
-    ac_d = ac_dat[[l]]
-    keep = intersect(keep, rownames(ac_d))
-    lines(xs, colMeans(ac_d[keep,, drop = F]), col = l2col[l], lwd = 2)
-  }
-  plot(c(0,1), type = 'n', xlim = c(-1000,1000), ylim = c(0,ymax), ylab = 'H3K4me3', lwd = 2)
-  for(l in linesToPlot){
-    me_d = me_dat[[l]]
-    keep = intersect(keep, rownames(me_d))
-    lines(xs, colMeans(me_d[keep,, drop = F]), col = l2col[l], lwd = 2)
-  }
-  plot(c(0,1),c(0,1), type = 'n', axes = F, xlab = '', ylab = '')
+plotNGS = function(ENSGcut_list, list_name, invert = F, ymax = 4, linesToPlot = c("MCF10A", "MCF7", "MDA231")) {
+    # plot ngs profile style plots ENSGcut_list : is a character vector of cut ensg ids, cut means version number removed list_name : name or description of input list,
+    # used in title invert : if T, everything not in list will be plotted ymax : the upper ylim for plots
+    layout(matrix(c(1:4), ncol = 1, byrow = T))
+    par(mai = c(0, 1, 0, 0.2))
+    xs = 0:100
+    xs = (20 * xs) - 1000
+    keep = ENSGcut_list
+    if (length(keep) < 2 && is.na(keep)) {
+        keep = ID_SET
+    }
+    if (invert) {
+        tmp = rep(T, length(ID_SET))
+        names(tmp) = ID_SET
+        tmp[keep] = F
+        keep = ID_SET[tmp]
+    }
+    plot(c(0, 1), c(0, 1), type = "n", axes = F, xlab = "", ylab = "")
+    text(0.5, 0.5, paste(list_name, "\n", length(keep), " genes", sep = ""), cex = 1.5)
+    legend(x = "left", legend = lines, fill = l2col[lines], bty = "n")
+    plot(c(0, 1), type = "n", xlim = c(-1000, 1000), ylim = c(0, ymax), ylab = "H3K4ac", lwd = 2, xaxt = "n")
+    for (l in linesToPlot) {
+        ac_d = ac_dat[[l]]
+        keep = intersect(keep, rownames(ac_d))
+        lines(xs, colMeans(ac_d[keep, , drop = F]), col = l2col[l], lwd = 2)
+    }
+    plot(c(0, 1), type = "n", xlim = c(-1000, 1000), ylim = c(0, ymax), ylab = "H3K4me3", lwd = 2)
+    for (l in linesToPlot) {
+        me_d = me_dat[[l]]
+        keep = intersect(keep, rownames(me_d))
+        lines(xs, colMeans(me_d[keep, , drop = F]), col = l2col[l], lwd = 2)
+    }
+    plot(c(0, 1), c(0, 1), type = "n", axes = F, xlab = "", ylab = "")
 }
 
-sym2cut = function(sym){
-  keep = sapply(ensg2sym, function(x)return(any(x == sym)))
-  cut = ensg2cut[names(ensg2sym)[keep]]
-  return(cut)
-}
+sym2cut = function(sym) {
+    keep = sapply(ensg2sym, function(x) return(any(x == sym)))
+    cut = ensg2cut[names(ensg2sym)[keep]]
+    return(cut)
+} 

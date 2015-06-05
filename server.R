@@ -28,7 +28,7 @@ shinyServer(function(input, output, session) {
       plot0()
       text(.5,.5, 'nothing selected')
     }else{
-      if(is.na(ngs_profiles)){
+      if(is.na(ngs_profiles)[1]){
         ngs_profiles <<- load_ngsprofiles(my_fe)
       }
       if(T){
@@ -100,6 +100,11 @@ shinyServer(function(input, output, session) {
       MAX = max(my_fe[,c(i_x, i_y)])
       plot_merge(data = disp_data, list_a = list_up, list_b = list_dn, colors = colors, a = i_x, b = i_y, note = note,
                  xlab = paste(name_a, 'log2 FE'), ylab = paste(name_b, 'log2 FE'), xlim = c(MIN, MAX), ylim = c(MIN, MAX), cex = .8)
+      detect_thresh = input$detect_threshold
+      if(detect_thresh > 0){
+        lines(c(MIN, detect_thresh), c(detect_thresh, detect_thresh), col = 'yellow')
+        lines(c(detect_thresh, detect_thresh), c(MIN, detect_thresh),  col = 'yellow')
+      }
     }, silent = F)
   })
   
@@ -116,7 +121,8 @@ shinyServer(function(input, output, session) {
   
   react_displayed = reactive({
     if(debug) print('react_displayed')
-    displayed_data = my_fe
+    keep = apply(my_fe,1,max) > input$detect_threshold
+    displayed_data = my_fe[keep,]
     displayed_groups = input$display_filter
     #print(displayed_groups)
     list_up = react_list_up()
@@ -371,7 +377,7 @@ shinyServer(function(input, output, session) {
     sel_as_position = ensg_dict[sel,]$ucsc
     base_url = 'https://genome.ucsc.edu/cgi-bin/hgTracks?hgS_doOtherUser=submit&hgS_otherUserName=jrboyd&hgS_otherUserSessionName=TM_K4_with_peaks'
     sel_as_urls = paste0(base_url, '&position=', sel_as_position)
-    sel_as_urls = paste0('<a href="', sel_as_urls, '">On UCSC</a>') 
+    sel_as_urls = paste0('<a target="_blank" href="', sel_as_urls, '">On UCSC</a>') 
     out_table = xtable(as.data.frame(cbind(sel, sel_as_symbols, sel_as_position, sel_as_urls)))
     colnames(out_table) = c('ENSG ID', 'Gene Symbol', 'Position', 'Promoter in UCSC')
     

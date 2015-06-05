@@ -28,15 +28,13 @@ parse_gtf = function(gtf_name) {
     start = as.numeric(get_col(4))
     end = as.numeric(get_col(5))
     
-    ucsc = paste0(chrm,':',paste0(start,'-',end))
+    ucsc = paste0(chrm, ":", paste0(start, "-", end))
     
-    enst_dict = data.frame(chrm, start, end, strand, ucsc, support, enst_id, ensg_id, gene_name, row.names = enst_id, 
-        stringsAsFactors = F)
+    enst_dict = data.frame(chrm, start, end, strand, ucsc, support, enst_id, ensg_id, gene_name, row.names = enst_id, stringsAsFactors = F)
     
     return(enst_dict)
-    # plot.pie = function(dat){ uniq = unique(dat) tmp = sapply(uniq, function(x)return(sum(x == dat))) pie(tmp)
-    # } plot.pie(support) enst2support = support names(enst2support) = enst_id enst2ensg = ensg_id
-    # names(enst2ensg) = enst_id
+    # plot.pie = function(dat){ uniq = unique(dat) tmp = sapply(uniq, function(x)return(sum(x == dat))) pie(tmp) } plot.pie(support) enst2support = support
+    # names(enst2support) = enst_id enst2ensg = ensg_id names(enst2ensg) = enst_id
 }
 
 if (F) {

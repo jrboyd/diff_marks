@@ -22,8 +22,13 @@ name2index = 1:6
 names(name2index) = column_choices
 
 source("scripts//functions_ngsplot.R")
-ngs_profiles = NA
+if(!exists('ngs_profiles')) ngs_profiles = NA
 
 ID_SET = rownames(my_fe)
 l2col = RColorBrewer::brewer.pal(n = 3, "Dark2")
 names(l2col) = lines[1:3] 
+
+plot0 = function(drawBorder = T){
+  plot(c(0,1), c(0,1), type = 'n', axes = F, xlab = '', ylab = '')
+  if(drawBorder)box()
+}

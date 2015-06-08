@@ -3,10 +3,7 @@ source('setup.R')
 
 shinyServer(function(input, output, session) {
   
-  plot0 = function(drawBorder = T){
-    plot(c(0,1), c(0,1), type = 'n', axes = F, xlab = '', ylab = '')
-    if(drawBorder)box()
-  }
+
   
   
   output$detail_plot = renderPlot({
@@ -45,7 +42,9 @@ shinyServer(function(input, output, session) {
         }
         sample_a = sub(' ', '_', colnames(my_fe)[i_x])
         sample_b = sub(' ', '_', colnames(my_fe)[i_y])
-        plotNGS_heatmap(sel, sample_a, sample_b)
+        res = plotNGS_heatmap(sel, c(sample_a, sample_b))
+        v$hmap_res = res
+        clear_hmap_res = F
         #plot(colMeans(ngs_x[sel,]))
       }
     }else if(input$detail_type == detail_plot_types[4]){#heatmap of all cell lines and mods

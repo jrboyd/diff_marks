@@ -47,17 +47,33 @@ applyWindow = function(dat, win = 10) {
 }
 
 # plotNGS_geneList = function(geneList, ymax = 4){ }
-plotNGS_heatmap = function(sel, sample_a, sample_b){
-  dat_a = ngs_profiles[[sample_a]][sel,, drop = F]
-  dat_b = ngs_profiles[[sample_b]][sel,, drop = F]
-  toPlot = cbind(dat_a, dat_b)
+plotNGS_heatmap = function(sel, samples_toPlot){
+  toPlot = matrix(0, ncol = 0, nrow = length(sel))
+  for(samp in samples_toPlot){
+    dat = ngs_profiles[[samp]][sel,, drop = F]
+    toPlot = cbind(toPlot, dat)
+  }
+  MAX = max(toPlot)
+  MIN = min(toPlot)
+  absMAX = max(abs(c(MAX, MIN)))
+  resltn = 100
+  start = round((.5 - (abs(MIN) / absMAX) * .5) * resltn)
+  end = round((.5 + (abs(MAX) / absMAX) * .5) * resltn)
+  
+  hmap_res = NULL
+  cr = colorRamp(c('blue', 'black', 'yellow'))
+  colors = rgb(cr(start:end/resltn)/255)
+  
+  xlabs = rep('', ncol(toPlot))
+  xlabs[1:length(samples_toPlot) * 100 - 50] = samples_toPlot
   if(nrow(toPlot) > 2){
-    heatmap.3(toPlot, nsplits = 2, classCount = 3)
+    hmap_res = heatmap.3(toPlot, nsplits = 2, classCount = 3, col = colors, labCol = xlabs, cexCol = 3, srtCol = 0, adjCol = c(.5,0), key.title = '', key.xlab = 'logFE')
   } else {
     plot0()
     text(.5,.5, 'select at least 3 genes')
   }
   
+  return(hmap_res)
 }
 
 

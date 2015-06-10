@@ -10,7 +10,7 @@ load("data/my_fe_corrected.save")
 debug = F
 
 display_filter_choices = c("Background", "Up", "Down")
-selection_filter_choices = c("No filter", "Up", "Down", "Unchanged")
+selection_filter_choices = c("Up or Down", "Up", "Down", "Unchanged", 'No Filter')
 selection_method_choices = c("Fold Change", "MAnorm", "MACS2 bdgdiff")
 detail_plot_types = c("None", "ngsplots - profiles", "ngsplots - heatmap", "FE heatmap")
 

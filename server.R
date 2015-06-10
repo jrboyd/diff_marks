@@ -283,7 +283,10 @@ shinyServer(function(input, output, session) {
   filter_selections = function(filter, sel, list_up, list_dn){
     filter = input$selection_filter
     if(length(sel) > 0){
-      if(filter == selection_filter_choices[2]){#up
+      if(filter == selection_filter_choices[1]){#up or down
+        sel = intersect(sel, union(list_up, list_dn))
+        #print(sel)
+      }else if(filter == selection_filter_choices[2]){#up
         sel = intersect(sel, list_up)
         #print(sel)
       }else if(filter == selection_filter_choices[3]){#down
